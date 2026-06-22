@@ -166,7 +166,7 @@ class BugReportLayer extends HTMLElement {
     this.MAX_LOGS_QUEUE = 100;
     this._logs = [];
 
-    this.tau = BugReportLayer.TAU_SECONDS;
+    this.tau = Math.max(BugReportLayer.TAU_SECONDS, Number.EPSILON);
     this.emaDecayBase = Math.exp(-1 / this.tau);
     this.targetX = 0;
     this.targetY = 0;
@@ -193,7 +193,7 @@ class BugReportLayer extends HTMLElement {
     this.animationFrameId = null;
 
     this.cachedLayers = [];
-    this.timeFormatter = new Intl.DateTimeFormat('en-US', {
+    this.timeFormatter = new Intl.DateTimeFormat(undefined, {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',
@@ -303,7 +303,7 @@ class BugReportLayer extends HTMLElement {
 
     this.metrics.frameTime = dt * 1000;
 
-    const alpha = 1 - Math.pow(this.emaDecayBase, dt);
+    const alpha = 1 - this.emaDecayBase ** dt;
 
     this.smoothedX += (this.targetX - this.smoothedX) * alpha;
     this.smoothedY += (this.targetY - this.smoothedY) * alpha;
@@ -341,12 +341,12 @@ class BugReportLayer extends HTMLElement {
     }
 
     if (now - this.lastMetricsDomUpdate >= BugReportLayer.METRICS_UPDATE_INTERVAL_MS) {
-      this.$mFps.textContent = String(this.metrics.fps);
+      this.$mFps.textContent = String(Math.round(this.metrics.fps));
       this.$mFt.textContent = `${this.metrics.frameTime.toFixed(1)}ms`;
       this.$mResX.textContent = this.metrics.residualX.toFixed(3);
       this.$mResY.textContent = this.metrics.residualY.toFixed(3);
       this.$mLogs.textContent = String(this.metrics.totalLogCount);
-      this.$mEvr.textContent = `${this.metrics.eventRatePerSec}/s`;
+      this.$mEvr.textContent = `${Math.round(this.metrics.eventRatePerSec)}/s`;
       this.lastMetricsDomUpdate = now;
     }
   }
