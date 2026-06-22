@@ -134,6 +134,12 @@ class BugReportLayer extends HTMLElement {
     return ['url', 'status'];
   }
 
+  static MAX_FRAME_TIME_SECONDS = 0.1;
+
+  static TAU_SECONDS = 0.08;
+
+  static METRICS_UPDATE_INTERVAL_MS = 120;
+
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -158,7 +164,7 @@ class BugReportLayer extends HTMLElement {
     this.MAX_LOGS_QUEUE = 100;
     this._logs = [];
 
-    this.tau = 0.08;
+    this.tau = BugReportLayer.TAU_SECONDS;
     this.targetX = 0;
     this.targetY = 0;
     this.smoothedX = 0;
@@ -178,11 +184,18 @@ class BugReportLayer extends HTMLElement {
     this.lastTimestamp = performance.now();
     this.fpsLastResetTime = this.lastTimestamp;
     this.eventsLastResetTime = this.lastTimestamp;
+    this.lastMetricsDomUpdate = this.lastTimestamp;
 
     this.isEngineRunning = false;
     this.animationFrameId = null;
 
     this.cachedLayers = [];
+    this.timeFormatter = new Intl.DateTimeFormat('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
 
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
@@ -230,7 +243,7 @@ class BugReportLayer extends HTMLElement {
 
   pushLog(message, type = 'info') {
     const entry = {
-      timestamp: new Date().toLocaleTimeString().split(' ')[0],
+      timestamp: this.timeFormatter.format(new Date()),
       type,
       message: String(message)
     };
@@ -284,7 +297,7 @@ class BugReportLayer extends HTMLElement {
     const dt = (now - this.lastTimestamp) / 1000;
     this.lastTimestamp = now;
 
-    if (dt > 0.1) {
+    if (dt > BugReportLayer.MAX_FRAME_TIME_SECONDS) {
       this.animationFrameId = requestAnimationFrame(this.renderPipelineStep);
       return;
     }
@@ -326,12 +339,15 @@ class BugReportLayer extends HTMLElement {
       this.eventsLastResetTime = now;
     }
 
-    this.$mFps.textContent = String(this.metrics.fps);
-    this.$mFt.textContent = `${this.metrics.frameTime.toFixed(1)}ms`;
-    this.$mResX.textContent = this.metrics.residualX.toFixed(3);
-    this.$mResY.textContent = this.metrics.residualY.toFixed(3);
-    this.$mLogs.textContent = String(this.metrics.totalLogCount);
-    this.$mEvr.textContent = `${this.metrics.eventRatePerSec}/s`;
+    if (now - this.lastMetricsDomUpdate >= BugReportLayer.METRICS_UPDATE_INTERVAL_MS) {
+      this.$mFps.textContent = String(this.metrics.fps);
+      this.$mFt.textContent = `${this.metrics.frameTime.toFixed(1)}ms`;
+      this.$mResX.textContent = this.metrics.residualX.toFixed(3);
+      this.$mResY.textContent = this.metrics.residualY.toFixed(3);
+      this.$mLogs.textContent = String(this.metrics.totalLogCount);
+      this.$mEvr.textContent = `${this.metrics.eventRatePerSec}/s`;
+      this.lastMetricsDomUpdate = now;
+    }
   }
 }
 
