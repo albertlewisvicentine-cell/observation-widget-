@@ -328,14 +328,14 @@ class BugReportLayer extends HTMLElement {
 
     const fpsElapsedMs = now - this.fpsLastResetTime;
     if (fpsElapsedMs >= BugReportLayer.PROFILE_INTERVAL_MS) {
-      this.metrics.fps = this.fpsFrameCount / (fpsElapsedMs / 1000);
+      this.metrics.fps = (this.fpsFrameCount * 1000) / fpsElapsedMs;
       this.fpsFrameCount = 0;
       this.fpsLastResetTime = now;
     }
 
     const eventsElapsedMs = now - this.eventsLastResetTime;
     if (eventsElapsedMs >= BugReportLayer.PROFILE_INTERVAL_MS) {
-      this.metrics.eventRatePerSec = this.metrics.mouseEventsCount / (eventsElapsedMs / 1000);
+      this.metrics.eventRatePerSec = (this.metrics.mouseEventsCount * 1000) / eventsElapsedMs;
       this.metrics.mouseEventsCount = 0;
       this.eventsLastResetTime = now;
     }
