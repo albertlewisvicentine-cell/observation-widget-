@@ -140,6 +140,8 @@ class BugReportLayer extends HTMLElement {
 
   static METRICS_UPDATE_INTERVAL_MS = 120;
 
+  static PROFILE_INTERVAL_MS = 1000;
+
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -204,9 +206,9 @@ class BugReportLayer extends HTMLElement {
 
   initLayerCache() {
     this.cachedLayers = [
-      { el: this.shadowRoot.getElementById('bg-layer'), k: 6, scale: 1.02 },
-      { el: this.shadowRoot.getElementById('mid-layer'), k: 18, scale: 1.08 },
-      { el: this.shadowRoot.getElementById('fg-layer'), k: 40, scale: 1.14 }
+      { el: this.shadowRoot.getElementById('bg-layer'), parallaxMultiplier: 6, scale: 1.02 },
+      { el: this.shadowRoot.getElementById('mid-layer'), parallaxMultiplier: 18, scale: 1.08 },
+      { el: this.shadowRoot.getElementById('fg-layer'), parallaxMultiplier: 40, scale: 1.14 }
     ];
   }
 
@@ -315,8 +317,8 @@ class BugReportLayer extends HTMLElement {
     for (const layer of this.cachedLayers) {
       if (!layer.el) continue;
 
-      const dx = this.smoothedX * layer.k;
-      const dy = this.smoothedY * layer.k;
+      const dx = this.smoothedX * layer.parallaxMultiplier;
+      const dy = this.smoothedY * layer.parallaxMultiplier;
       layer.el.style.transform = `scale(${layer.scale}) translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0px)`;
     }
 
@@ -327,13 +329,13 @@ class BugReportLayer extends HTMLElement {
   profileMetrics(now) {
     this.fpsFrameCount += 1;
 
-    if (now - this.fpsLastResetTime >= 1000) {
+    if (now - this.fpsLastResetTime >= BugReportLayer.PROFILE_INTERVAL_MS) {
       this.metrics.fps = this.fpsFrameCount;
       this.fpsFrameCount = 0;
       this.fpsLastResetTime = now;
     }
 
-    if (now - this.eventsLastResetTime >= 1000) {
+    if (now - this.eventsLastResetTime >= BugReportLayer.PROFILE_INTERVAL_MS) {
       this.metrics.eventRatePerSec = this.metrics.mouseEventsCount;
       this.metrics.mouseEventsCount = 0;
       this.eventsLastResetTime = now;
