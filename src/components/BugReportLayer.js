@@ -166,7 +166,7 @@ class BugReportLayer extends HTMLElement {
     this.MAX_LOGS_QUEUE = 100;
     this._logs = [];
 
-    this.tau = Math.max(BugReportLayer.TAU_SECONDS, Number.EPSILON);
+    this.tau = Math.max(BugReportLayer.TAU_SECONDS, 0.001);
     this.emaDecayBase = Math.exp(-1 / this.tau);
     this.targetX = 0;
     this.targetY = 0;
