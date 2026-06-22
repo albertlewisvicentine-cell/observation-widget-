@@ -167,6 +167,7 @@ class BugReportLayer extends HTMLElement {
     this._logs = [];
 
     this.tau = BugReportLayer.TAU_SECONDS;
+    this.emaDecayBase = Math.exp(-1 / this.tau);
     this.targetX = 0;
     this.targetY = 0;
     this.smoothedX = 0;
@@ -296,17 +297,13 @@ class BugReportLayer extends HTMLElement {
   renderPipelineStep(now) {
     if (!this.isEngineRunning) return;
 
-    const dt = (now - this.lastTimestamp) / 1000;
+    const rawDt = (now - this.lastTimestamp) / 1000;
+    const dt = Math.min(rawDt, BugReportLayer.MAX_FRAME_TIME_SECONDS);
     this.lastTimestamp = now;
-
-    if (dt > BugReportLayer.MAX_FRAME_TIME_SECONDS) {
-      this.animationFrameId = requestAnimationFrame(this.renderPipelineStep);
-      return;
-    }
 
     this.metrics.frameTime = dt * 1000;
 
-    const alpha = 1 - Math.exp(-dt / this.tau);
+    const alpha = 1 - Math.pow(this.emaDecayBase, dt);
 
     this.smoothedX += (this.targetX - this.smoothedX) * alpha;
     this.smoothedY += (this.targetY - this.smoothedY) * alpha;
@@ -329,14 +326,16 @@ class BugReportLayer extends HTMLElement {
   profileMetrics(now) {
     this.fpsFrameCount += 1;
 
-    if (now - this.fpsLastResetTime >= BugReportLayer.PROFILE_INTERVAL_MS) {
-      this.metrics.fps = this.fpsFrameCount;
+    const fpsElapsedMs = now - this.fpsLastResetTime;
+    if (fpsElapsedMs >= BugReportLayer.PROFILE_INTERVAL_MS) {
+      this.metrics.fps = this.fpsFrameCount / (fpsElapsedMs / 1000);
       this.fpsFrameCount = 0;
       this.fpsLastResetTime = now;
     }
 
-    if (now - this.eventsLastResetTime >= BugReportLayer.PROFILE_INTERVAL_MS) {
-      this.metrics.eventRatePerSec = this.metrics.mouseEventsCount;
+    const eventsElapsedMs = now - this.eventsLastResetTime;
+    if (eventsElapsedMs >= BugReportLayer.PROFILE_INTERVAL_MS) {
+      this.metrics.eventRatePerSec = this.metrics.mouseEventsCount / (eventsElapsedMs / 1000);
       this.metrics.mouseEventsCount = 0;
       this.eventsLastResetTime = now;
     }
